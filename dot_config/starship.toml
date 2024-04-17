@@ -1,0 +1,80 @@
+#Location: ~/.config/starship.toml
+#What_is_starship: https://starship.rs/
+
+add_newline = true
+command_timeout = 2000
+
+format = """\
+$os\
+$kubernetes\
+$directory\
+${custom.rootwarning}\
+$character\
+"""
+
+right_format = """\
+$git_branch\
+$git_status\ 
+$python\
+$username\
+$hostname\
+"""
+
+[os]
+format = '[$symbol](bold white) | '   
+disabled = false
+
+[os.symbols]
+Windows = ' '
+Arch = '󰣇'
+Ubuntu = ' '
+Macos = '󰀵'
+Debian = ''
+Unknown = '󰠥'
+
+# Shows the username
+[username]
+style_user = 'white'
+style_root = 'red bold'
+format = '[$user]($style)'
+disabled = false
+show_always = true
+
+# Shows the hostname
+[hostname]
+ssh_only = false
+format = '[@$hostname](white) '
+disabled = false
+
+# Shows current directory
+[directory]
+truncation_length = 0
+truncation_symbol = '…/'
+home_symbol = ' '
+read_only = '  '
+format = '[$path]($style)[$read_only]($read_only_style) '
+style = 'cyan bold'
+
+# Shows current git branch
+[git_branch]
+format = '[$symbol\[$branch\]]($style) '
+style = 'bold green'
+
+# Shows current git status
+[git_status]
+disabled = false
+
+[docker_context]
+disabled = false
+
+[python]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[custom.rootwarning]
+when = ''' test "$USER" = "root" '''
+symbol = '! '
+style = 'red bold'
+format = '[$symbol]($style)'
