@@ -1,0 +1,72 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/bin/bash
+
+# Überprüfen, ob zsh installiert ist
+if ! command -v zsh &> /dev/null; then
+    missing_programs="$missing_programs zsh"
+fi
+
+# Überprüfen, ob fzf installiert ist
+if ! command -v fzf &> /dev/null; then
+    missing_programs="$missing_programs fzf"
+fi
+
+# Überprüfen, ob starship installiert ist
+if ! command -v starship &> /dev/null; then
+    curl -sS https://starship.rs/install.sh | sh
+fi
+
+# Überprüfen, ob eza installiert ist
+if ! command -v eza &> /dev/null; then
+    missing_programs="$missing_programs eza"
+    {{ if eq .chezmoi.osRelease.id "debian" }}
+        sudo mkdir -p /etc/apt/keyrings
+        wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
+        echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list
+        sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
+    {{ end }}
+fi
+
+# Installation fehlender Programme mit Package Manager
+if [ -n "$missing_programs" ]; then
+    echo "Folgende Programme fehlen: $missing_programs"
+
+    {{ if eq .chezmoi.osRelease.id "debian" }}
+        echo "Installation mit apt..."
+        sudo apt update
+        sudo apt install -y $missing_programs
+    {{ else if eq .chezmoi.osRelease.id "almalinux" }}
+        echo "Installation mit dnf..."
+        sudo dnf install -y $missing_programs
+    {{ end }}
+else
+    echo "Alle notwendigen Programme sind installiert."
+fi
+{{ else if eq .chezmoi.os "darwin" -}}
+#!/bin/sh
+missing_programs=""
+
+# Überprüfen, ob starship installiert ist
+if ! command -v starship &> /dev/null; then
+    missing_programs="$missing_programs starship"
+fi
+
+# Überprüfen, ob fzf installiert ist
+if ! command -v fzf &> /dev/null; then
+    missing_programs="$missing_programs fzf"
+fi
+
+# Überprüfen, ob eza installiert ist
+if ! command -v eza &> /dev/null; then
+    missing_programs="$missing_programs eza"
+fi
+
+# Installation fehlender Programme mit brew
+if [ -n "$missing_programs" ]; then
+    echo "Folgende Programme fehlen: $missing_programs"
+    echo "Installation mit brew..."
+    brew install $missing_programs
+else
+    echo "Alle notwendigen Programme sind installiert."
+fi
+{{ end -}}

@@ -1,0 +1,73 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/bin/bash
+
+# Benutzernamen des ausführenden Nutzers ausgeben
+if [ "$(id -u)" = "0" ]; then
+    CURRENT_USER="root"
+else
+    CURRENT_USER="$USER"
+fi
+echo "Benutzername des ausführenden Nutzers: $CURRENT_USER"
+
+# Prüfen, ob der Benutzer root ist
+if [ "$CURRENT_USER" != "root" ]; then
+    # Prüfen, ob im Pfad /var/lib/systemd/linger/ eine Datei mit dem Benutzernamen existiert
+    if [ ! -f "/var/lib/systemd/linger/$CURRENT_USER" ]; then
+        # Wenn nicht, Befehl loginctl --enable-linger ausführen
+        sudo loginctl enable-linger $CURRENT_USER
+    fi
+
+    # Prüfen, ob der Ordner ~/.config/systemd/user existiert, andernfalls erstellen
+    if [ ! -d "$HOME/.config/systemd/user" ]; then
+        mkdir -p "$HOME/.config/systemd/user"
+    fi
+
+    # In den Ordner ~/.config/systemd/user die Dateien anlegen
+    chezmoi_auto_update_service_file="$HOME/.config/systemd/user/chezmoi-auto-update.service"
+    chezmoi_auto_update_timer_file="$HOME/.config/systemd/user/chezmoi-auto-update.timer"
+else
+    # Setze $HOME auf /root
+    HOME="/root"
+
+    # In den Ordner /etc/systemd/system die Dateien anlegen
+    chezmoi_auto_update_service_file="/etc/systemd/system/chezmoi-auto-update.service"
+    chezmoi_auto_update_timer_file="/etc/systemd/system/chezmoi-auto-update.timer"
+fi
+
+# Inhalte der Dateien setzen
+chezmoi_auto_update_service_content="[Unit]
+Description=chezmoi auto-update service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c \"chezmoi update --force && chezmoi apply --force\"
+
+[Install]
+WantedBy=default.target
+"
+
+chezmoi_auto_update_timer_content="[Unit]
+Description=chezmoi auto-update timer
+
+[Timer]
+OnCalendar=*-*-* 07:00:00
+RandomizedDelaySec=900
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+"
+
+# Dateien erstellen und Inhalte einfügen
+echo "$chezmoi_auto_update_service_content" > "$chezmoi_auto_update_service_file"
+echo "$chezmoi_auto_update_timer_content" > "$chezmoi_auto_update_timer_file"
+
+# Services aktivieren und starten
+if [ "$CURRENT_USER" != "root" ]; then
+    systemctl --user enable chezmoi-auto-update.timer --now
+else
+    systemctl enable chezmoi-auto-update.timer --now
+fi
+
+echo "Skript ausgeführt!"
+{{ end -}}
